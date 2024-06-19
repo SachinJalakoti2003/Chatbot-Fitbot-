@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitbot:Your Wellness Assitant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="bg">
+    <div class="cs"><h1 style="color: aliceblue;">Fitbot:Your Wellness Assitant</h1>
+    </div>
+    <div class="chat-container">
+
+        <div id="chat-box">
+            <div class="message bot-message">
+                Please tell me your gender, age, weight, and height in this format:<br><br>Gender: <br> Age: your age <br> Weight: your weight <br>Height: your height
+            </div>
+        </div>
+        <input type="text" id="user-input" placeholder="Type a message...">
+        <button id="send-btn">Send</button>
+    </div>
+
+    <script>
+        document.getElementById('send-btn').addEventListener('click', () => {
+            const userInput = document.getElementById('user-input').value;
+            if (userInput) {
+                const userMessageDiv = document.createElement('div');
+                userMessageDiv.className = 'message user-message';
+                userMessageDiv.textContent = userInput;
+                document.getElementById('chat-box').appendChild(userMessageDiv);
+
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: {                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: userInput }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const botMessageDiv = document.createElement('div');
+                    botMessageDiv.className = 'message bot-message';
+                    botMessageDiv.innerHTML = data.response; // Use innerHTML to render HTML
+                    document.getElementById('chat-box').appendChild(botMessageDiv);
+                    document.getElementById('user-input').value = '';
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        });
+    </script>
+    
+</body>
+</html>  

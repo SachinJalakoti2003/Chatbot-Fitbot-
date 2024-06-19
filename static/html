@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Company Registration Form</title>
+</head>
+<body>
+  <form>
+    <table>
+      <tr>
+        <td>Email Address:</td>
+        <td><input type="text" email=""></td>
+      </tr>
+      <tr>
+        <td>Password:</td>
+        <td><input type="Password" name=""></td>
+      </tr>
+    </table>
+    <button type="submit">Submit</button>
+  </form>
+</body>
+</html>
