@@ -6,7 +6,7 @@ import re
 app = Flask(__name__)
 
 # Configure the API key
-genai.configure(api_key="AIzaSyDEUySnBsO7gt29aXQuqknfrcKO7lDt01w")
+genai.configure(api_key="")
 
 # Define generation configuration
 generation_config = {
