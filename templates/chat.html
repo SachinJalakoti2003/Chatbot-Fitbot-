@@ -7,21 +7,29 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="bg">
-    <div class="cs"><h1 style="color: aliceblue;">Fitbot:Your Wellness Assitant</h1>
-    </div>
+    
     <div class="chat-container">
+        <div class="cs"><h1 style="color: #333;">Fitbot:Your Wellness Assitant</h1></div>
 
         <div id="chat-box">
             <div class="message bot-message">
-                Please tell me your gender, age, weight, and height in this format:<br><br>Gender: <br> Age: your age <br> Weight: your weight <br>Height: your height
+                Please tell me your gender, age, weight, and height in this format:
+                <ul>
+                    <li>Gender: your gender</li>
+                    <li>Age: your age</li>
+                    <li>Weight: your weight</li>
+                    <li>Height: your height</li>
+                </ul>
             </div>
         </div>
-        <input type="text" id="user-input" placeholder="Type a message...">
-        <button id="send-btn">Send</button>
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Type a message...">
+            <div id="send-icon">➤</div>
+        </div>
     </div>
 
     <script>
-        document.getElementById('send-btn').addEventListener('click', () => {
+        document.getElementById('send-icon').addEventListener('click', () => {
             const userInput = document.getElementById('user-input').value;
             if (userInput) {
                 const userMessageDiv = document.createElement('div');
@@ -46,6 +54,15 @@
                 .catch(error => console.error('Error:', error));
             }
         });
+
+        // Allow sending message by pressing Enter key
+        document.getElementById('user-input').addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent default form submission
+                document.getElementById('send-icon').click();
+            }
+        });
+
     </script>
     
 </body>

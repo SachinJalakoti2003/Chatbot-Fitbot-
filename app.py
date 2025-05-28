@@ -6,7 +6,7 @@ import re
 app = Flask(__name__)
 
 # Configure the API key
-genai.configure(api_key="")
+genai.configure(api_key="AIzaSyDJXrCuBYP-KKKrEncheusiyz-GeNM0Do0")
 
 # Define generation configuration
 generation_config = {
@@ -66,9 +66,31 @@ def format_response(text):
 
     return text
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        # Handle login logic here (e.g., check credentials)
+        username = request.form['username']
+        password = request.form['password']
+        # For now, just redirect to chat page on successful login
+        # In a real app, you would verify credentials
+        return render_template('chat.html') # Redirect to chat page after login
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        # Handle registration logic here (e.g., save user data)
+        username = request.form['username']
+        password = request.form['password']
+        # For now, just redirect to login page after registration
+        # In a real app, you would save the user
+        return render_template('login.html') # Redirect to login page after registration
+    return render_template('register.html')
+
 @app.route('/')
 def index():
-    return render_template('chat.html')
+    return render_template('login.html') # Redirect root to login page
 
 @app.route('/chat', methods=['POST'])
 def chat():
