@@ -1,0 +1,20 @@
+# Ignore virtual environment directory
+.venv/
+
+# Ignore compiled Python files
+__pycache__/
+*.pyc
+
+# Ignore editor/IDE files
+.vscode/
+.idea/
+
+# Ignore macOS files
+.DS_Store
+
+# Ignore build artifacts
+/dist
+/build
+
+# Ignore environment variables file
+.env 
