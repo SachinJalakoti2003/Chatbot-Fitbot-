@@ -2,6 +2,12 @@ from flask import Flask, render_template, request, jsonify
 import os
 import google.generativeai as genai
 import re
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
+from flask import session
+import json
+from pymongo import MongoClient
 
 app = Flask(__name__)
 
@@ -66,27 +72,47 @@ def format_response(text):
 
     return text
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        # Handle login logic here (e.g., check credentials)
-        username = request.form['username']
-        password = request.form['password']
-        # For now, just redirect to chat page on successful login
-        # In a real app, you would verify credentials
-        return render_template('chat.html') # Redirect to chat page after login
-    return render_template('login.html')
+def get_bmi_category(bmi):
+    if bmi < 18.5:
+        return "Underweight"
+    elif 18.5 <= bmi < 25:
+        return "Normal weight"
+    elif 25 <= bmi < 30:
+        return "Overweight"
+    else:
+        return "Obese"
+
+MONGO_URI = "mongodb+srv://sachinjalkote45:chatbot%40123@fitbot-chatbot.ij3mgel.mongodb.net/?retryWrites=true&w=majority&appName=fitbot-chatbot"
+client = MongoClient(MONGO_URI)
+db = client['fitbot']
+users_collection = db['users']
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        # Handle registration logic here (e.g., save user data)
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        # Check if user exists
+        if users_collection.find_one({'$or': [{'username': username}, {'email': email}]}):
+            return render_template('register.html', error="Username or email already exists.")
+        # Insert new user
+        users_collection.insert_one({'username': username, 'email': email, 'password': password})
+        return render_template('login.html', message="Registration successful! Please log in.")
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        # For now, just redirect to login page after registration
-        # In a real app, you would save the user
-        return render_template('login.html') # Redirect to login page after registration
-    return render_template('register.html')
+        user = users_collection.find_one({'username': username, 'password': password})
+        if user:
+            session['username'] = username
+            return render_template('chat.html')
+        else:
+            return render_template('login.html', error="Invalid username or password.")
+    return render_template('login.html')
 
 @app.route('/')
 def index():
@@ -95,9 +121,24 @@ def index():
 @app.route('/chat', methods=['POST'])
 def chat():
     user_input = request.json.get('message')
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'response': 'Please log in.'})
     response = chat_session.send_message(user_input)
     formatted_response = format_response(response.text)
     return jsonify({'response': formatted_response})
+
+@app.route('/chat_history')
+def chat_history():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'history': []})
+    messages = ChatMessage.query.filter_by(user_id=user_id).order_by(ChatMessage.timestamp).all()
+    history = [
+        {'sender': m.sender, 'message': m.message, 'timestamp': m.timestamp.isoformat()}
+        for m in messages
+    ]
+    return jsonify({'history': history})
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -5,30 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <h2>Login</h2>
+        <div class="header">
+            <h2>Login</h2>
+            <button id="theme-toggle" class="theme-toggle" title="Switch theme">🌙</button>
+        </div>
         <form method="POST" action="/login">
             <div>
-                <label for="username">Username:</label>
-                <input type="text" id="username" name="username" required>
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autocomplete="username">
             </div>
-            <div>
-                <label for="password">Password:</label>
-                <input type="password" id="password" name="password" required>
+            <div style="position: relative;">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password" style="padding-right: 2.5em;">
+                <span id="toggle-login-password" style="position: absolute; right: 0.8em; top: 2.3em; cursor: pointer; user-select: none; font-size: 1.2em; color: #888;">👁️</span>
             </div>
             <button type="submit">Login</button>
         </form>
-        
-        <p>Or login with:</p>
-        <div class="social-icons">
-            <div class="social-icon google">G+</div> <!-- Placeholder for Google -->
-            <div class="social-icon facebook">f</div> <!-- Placeholder for Facebook -->
-            <div class="social-icon github">Git</div> <!-- Placeholder for GitHub -->
-        </div>
-
         <p>Don't have an account? <a href="/register">Register here</a>.</p>
     </div>
+    <script>
+        // Theme toggle logic
+        const themeToggle = document.getElementById('theme-toggle');
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                document.body.classList.add('dark-theme');
+                themeToggle.textContent = '☀️';
+            } else {
+                document.body.classList.remove('dark-theme');
+                themeToggle.textContent = '🌙';
+            }
+        }
+        // On load, set theme from localStorage
+        const savedTheme = localStorage.getItem('fitbotTheme') || 'light';
+        setTheme(savedTheme);
+        themeToggle.addEventListener('click', function() {
+            const isDark = document.body.classList.toggle('dark-theme');
+            const newTheme = isDark ? 'dark' : 'light';
+            setTheme(newTheme);
+            localStorage.setItem('fitbotTheme', newTheme);
+        });
+        // Password view/hide toggle for login
+        const loginPwToggle = document.getElementById('toggle-login-password');
+        const loginPwInput = document.getElementById('password');
+        if (loginPwToggle && loginPwInput) {
+            loginPwToggle.addEventListener('click', function() {
+                if (loginPwInput.type === 'password') {
+                    loginPwInput.type = 'text';
+                    loginPwToggle.textContent = '🙈';
+                } else {
+                    loginPwInput.type = 'password';
+                    loginPwToggle.textContent = '👁️';
+                }
+            });
+        }
+    </script>
 </body>
 </html> 

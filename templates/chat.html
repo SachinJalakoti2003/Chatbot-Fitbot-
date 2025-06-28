@@ -3,67 +3,222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fitbot:Your Wellness Assitant</title>
+    <title>Fitbot: Your Wellness Assistant</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/4ad7d6e5e2.js" crossorigin="anonymous"></script>
+    <style>
+        .user-info-form {
+            background: rgba(35, 40, 58, 0.98);
+            border-radius: 18px;
+            box-shadow: 0 0 18px 2px var(--accent2);
+            padding: 2rem 1.5rem 1.5rem 1.5rem;
+            margin: 1.5rem auto 1rem auto;
+            max-width: 350px;
+            animation: fadeIn 1s;
+        }
+        .user-info-form h3 {
+            color: var(--accent);
+            margin-bottom: 1.2rem;
+            font-weight: 600;
+            text-align: center;
+        }
+        .user-info-group {
+            position: relative;
+            margin-bottom: 1.2rem;
+        }
+        .user-info-group input, .user-info-group select {
+            width: 100%;
+            padding: 0.9rem 1rem 0.9rem 2.5rem;
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 1em;
+            outline: none;
+            transition: border 0.3s, box-shadow 0.3s;
+        }
+        .user-info-group input:focus, .user-info-group select:focus {
+            border: 1.5px solid var(--accent);
+            box-shadow: 0 0 8px 0 var(--accent2);
+        }
+        .user-info-group .fa {
+            position: absolute;
+            left: 0.9rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--accent2);
+            font-size: 1.1em;
+        }
+        .user-info-form button {
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+    </style>
 </head>
 <body class="bg">
-    
     <div class="chat-container">
-        <div class="cs"><h1 style="color: #333;">Fitbot:Your Wellness Assitant</h1></div>
-
-        <div id="chat-box">
-            <div class="message bot-message">
-                Please tell me your gender, age, weight, and height in this format:
-                <ul>
-                    <li>Gender: your gender</li>
-                    <li>Age: your age</li>
-                    <li>Weight: your weight</li>
-                    <li>Height: your height</li>
-                </ul>
-            </div>
+        <div class="header">
+            <h1>Fitbot: Your Wellness Assistant</h1>
+            <button id="theme-toggle" class="theme-toggle" title="Switch theme">🌙</button>
         </div>
-        <div class="input-area">
+        <div id="chat-box"></div>
+        <form class="user-info-form" id="user-info-form">
+            <div class="user-info-group">
+                <label for="gender">Gender</label>
+                <select id="gender" name="gender" required>
+                    <option value="" disabled selected hidden></option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="user-info-group">
+                <label for="age">Age</label>
+                <input type="number" id="age" name="age" min="1" max="120" required autocomplete="off">
+            </div>
+            <div class="user-info-group">
+                <label for="weight">Weight (kg)</label>
+                <input type="number" id="weight" name="weight" min="1" max="500" required autocomplete="off">
+            </div>
+            <div class="user-info-group">
+                <label for="height">Height (cm)</label>
+                <input type="number" id="height" name="height" min="30" max="300" required autocomplete="off">
+            </div>
+            <button type="submit">Continue</button>
+        </form>
+        <div class="input-area" id="chat-input-area" style="display:none;">
             <input type="text" id="user-input" placeholder="Type a message...">
-            <div id="send-icon">➤</div>
+            <div id="send-icon">&#10148;</div>
         </div>
     </div>
-
     <script>
+        // Show animated message bubbles
+        function animateLastMessage() {
+            const chatBox = document.getElementById('chat-box');
+            const messages = chatBox.getElementsByClassName('message');
+            if (messages.length > 0) {
+                const lastMsg = messages[messages.length - 1];
+                lastMsg.style.opacity = 0;
+                lastMsg.style.transform = 'translateY(30px)';
+                setTimeout(() => {
+                    lastMsg.style.transition = 'opacity 0.5s, transform 0.5s';
+                    lastMsg.style.opacity = 1;
+                    lastMsg.style.transform = 'translateY(0)';
+                }, 50);
+            }
+        }
+
+        // Initial prompt as a message
+        function showInitialPrompt() {
+            const chatBox = document.getElementById('chat-box');
+            const promptDiv = document.createElement('div');
+            promptDiv.className = 'message bot-message';
+            promptDiv.innerHTML = `Welcome! Please provide your details to get personalized wellness advice.`;
+            chatBox.appendChild(promptDiv);
+            animateLastMessage();
+        }
+        showInitialPrompt();
+
+        // On page load, check if user info was already submitted
+        window.addEventListener('DOMContentLoaded', function() {
+            if (localStorage.getItem('fitbotUserInfoSubmitted') === 'true') {
+                document.getElementById('user-info-form').style.display = 'none';
+                document.getElementById('chat-input-area').style.display = 'flex';
+            }
+        });
+
+        // Handle user info form submission
+        document.getElementById('user-info-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const gender = document.getElementById('gender').value;
+            const age = document.getElementById('age').value;
+            const weight = document.getElementById('weight').value;
+            const height = document.getElementById('height').value;
+            // Format as required by the bot
+            const userInfoMsg = `Gender: ${gender}\nAge: ${age}\nWeight: ${weight}\nHeight: ${height}`;
+            // Add user info as a user message
+            const chatBox = document.getElementById('chat-box');
+            const userDiv = document.createElement('div');
+            userDiv.className = 'message user-message';
+            userDiv.innerHTML = '<span class="msg-text">' + userInfoMsg + '</span>';
+            chatBox.appendChild(userDiv);
+            animateLastMessage();
+            // Hide the form and show chat input
+            document.getElementById('user-info-form').style.display = 'none';
+            document.getElementById('chat-input-area').style.display = 'flex';
+            // Store flag in localStorage
+            localStorage.setItem('fitbotUserInfoSubmitted', 'true');
+            // Send to backend as first message
+            fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', },
+                body: JSON.stringify({ message: userInfoMsg }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                const botMessageDiv = document.createElement('div');
+                botMessageDiv.className = 'message bot-message';
+                botMessageDiv.innerHTML = '<span class="msg-text">' + data.response + '</span>';
+                chatBox.appendChild(botMessageDiv);
+                animateLastMessage();
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        // Chat input logic
         document.getElementById('send-icon').addEventListener('click', () => {
             const userInput = document.getElementById('user-input').value;
             if (userInput) {
                 const userMessageDiv = document.createElement('div');
                 userMessageDiv.className = 'message user-message';
-                userMessageDiv.textContent = userInput;
+                userMessageDiv.innerHTML = '<span class="msg-text">' + userInput + '</span>';
                 document.getElementById('chat-box').appendChild(userMessageDiv);
-
+                animateLastMessage();
                 fetch('/chat', {
                     method: 'POST',
-                    headers: {                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json', },
                     body: JSON.stringify({ message: userInput }),
                 })
                 .then(response => response.json())
                 .then(data => {
                     const botMessageDiv = document.createElement('div');
                     botMessageDiv.className = 'message bot-message';
-                    botMessageDiv.innerHTML = data.response; // Use innerHTML to render HTML
+                    botMessageDiv.innerHTML = '<span class="msg-text">' + data.response + '</span>';
                     document.getElementById('chat-box').appendChild(botMessageDiv);
+                    animateLastMessage();
                     document.getElementById('user-input').value = '';
                 })
                 .catch(error => console.error('Error:', error));
             }
         });
-
-        // Allow sending message by pressing Enter key
         document.getElementById('user-input').addEventListener('keypress', (event) => {
             if (event.key === 'Enter') {
-                event.preventDefault(); // Prevent default form submission
+                event.preventDefault();
                 document.getElementById('send-icon').click();
             }
         });
 
+        // Theme toggle logic
+        const themeToggle = document.getElementById('theme-toggle');
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                document.body.classList.add('dark-theme');
+                themeToggle.textContent = '☀️';
+            } else {
+                document.body.classList.remove('dark-theme');
+                themeToggle.textContent = '🌙';
+            }
+        }
+        // On load, set theme from localStorage
+        const savedTheme = localStorage.getItem('fitbotTheme') || 'light';
+        setTheme(savedTheme);
+        themeToggle.addEventListener('click', function() {
+            const isDark = document.body.classList.toggle('dark-theme');
+            const newTheme = isDark ? 'dark' : 'light';
+            setTheme(newTheme);
+            localStorage.setItem('fitbotTheme', newTheme);
+        });
     </script>
-    
 </body>
 </html>  
