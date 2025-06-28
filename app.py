@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, jsonify
 import os
 import google.generativeai as genai
 import re
-from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from flask import session
