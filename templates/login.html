@@ -13,6 +13,16 @@
             <h2>Login</h2>
             <button id="theme-toggle" class="theme-toggle" title="Switch theme">🌙</button>
         </div>
+        {% if error %}
+            <div class="error-message">
+                {{ error }}
+            </div>
+        {% endif %}
+        {% if message %}
+            <div class="success-message">
+                {{ message }}
+            </div>
+        {% endif %}
         <form method="POST" action="/login">
             <div>
                 <label for="username">Username</label>

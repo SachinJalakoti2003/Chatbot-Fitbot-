@@ -60,7 +60,10 @@
     <div class="chat-container">
         <div class="header">
             <h1>Fitbot: Your Wellness Assistant</h1>
-            <button id="theme-toggle" class="theme-toggle" title="Switch theme">🌙</button>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <a href="/logout" class="logout-btn">Logout</a>
+                <button id="theme-toggle" class="theme-toggle" title="Switch theme">🌙</button>
+            </div>
         </div>
         <div id="chat-box"></div>
         <form class="user-info-form" id="user-info-form">
@@ -88,7 +91,12 @@
             <button type="submit">Continue</button>
         </form>
         <div class="input-area" id="chat-input-area" style="display:none;">
-            <input type="text" id="user-input" placeholder="Type a message...">
+            <div class="input-container">
+                <input type="text" id="user-input" placeholder="Type a message or click the mic to speak...">
+                <button id="mic-button" type="button" title="Click to speak">
+                    <i class="fas fa-microphone"></i>
+                </button>
+            </div>
             <div id="send-icon">&#10148;</div>
         </div>
     </div>
@@ -114,9 +122,8 @@
             const chatBox = document.getElementById('chat-box');
             const promptDiv = document.createElement('div');
             promptDiv.className = 'message bot-message';
-            promptDiv.innerHTML = `Welcome! Please provide your details to get personalized wellness advice.`;
+            promptDiv.innerHTML = `<div class="avatar">🤖</div><span class="msg-text">Welcome! Please provide your details to get personalized wellness advice.</span>`;
             chatBox.appendChild(promptDiv);
-            animateLastMessage();
         }
         showInitialPrompt();
 
@@ -141,9 +148,8 @@
             const chatBox = document.getElementById('chat-box');
             const userDiv = document.createElement('div');
             userDiv.className = 'message user-message';
-            userDiv.innerHTML = '<span class="msg-text">' + userInfoMsg + '</span>';
+            userDiv.innerHTML = '<div class="avatar">👤</div><span class="msg-text">' + userInfoMsg.replace(/\n/g, '<br>') + '</span>';
             chatBox.appendChild(userDiv);
-            animateLastMessage();
             // Hide the form and show chat input
             document.getElementById('user-info-form').style.display = 'none';
             document.getElementById('chat-input-area').style.display = 'flex';
@@ -159,22 +165,89 @@
             .then(data => {
                 const botMessageDiv = document.createElement('div');
                 botMessageDiv.className = 'message bot-message';
-                botMessageDiv.innerHTML = '<span class="msg-text">' + data.response + '</span>';
+                botMessageDiv.innerHTML = '<div class="avatar">🤖</div><span class="msg-text">' + data.response + '</span>';
                 chatBox.appendChild(botMessageDiv);
-                animateLastMessage();
+                // Scroll to bottom
+                chatBox.scrollTop = chatBox.scrollHeight;
             })
             .catch(error => console.error('Error:', error));
         });
 
-        // Chat input logic
-        document.getElementById('send-icon').addEventListener('click', () => {
-            const userInput = document.getElementById('user-input').value;
+        // Speech recognition setup
+        let recognition;
+        let isRecording = false;
+        
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+            
+            recognition.onstart = function() {
+                isRecording = true;
+                const micButton = document.getElementById('mic-button');
+                micButton.classList.add('recording');
+                micButton.innerHTML = '<i class="fas fa-stop"></i>';
+                micButton.title = 'Click to stop recording';
+            };
+            
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('user-input').value = transcript;
+            };
+            
+            recognition.onend = function() {
+                isRecording = false;
+                const micButton = document.getElementById('mic-button');
+                micButton.classList.remove('recording');
+                micButton.innerHTML = '<i class="fas fa-microphone"></i>';
+                micButton.title = 'Click to speak';
+            };
+            
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+                isRecording = false;
+                const micButton = document.getElementById('mic-button');
+                micButton.classList.remove('recording');
+                micButton.innerHTML = '<i class="fas fa-microphone"></i>';
+                micButton.title = 'Click to speak';
+            };
+        }
+        
+        // Microphone button functionality
+        document.getElementById('mic-button').addEventListener('click', function() {
+            if (!recognition) {
+                alert('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+                return;
+            }
+            
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        });
+
+        // Enhanced chat input logic with typing indicator
+        function sendMessage() {
+            const userInput = document.getElementById('user-input').value.trim();
             if (userInput) {
+                // Add user message
                 const userMessageDiv = document.createElement('div');
                 userMessageDiv.className = 'message user-message';
-                userMessageDiv.innerHTML = '<span class="msg-text">' + userInput + '</span>';
+                userMessageDiv.innerHTML = '<div class="avatar">👤</div><span class="msg-text">' + userInput + '</span>';
                 document.getElementById('chat-box').appendChild(userMessageDiv);
-                animateLastMessage();
+                
+                // Add typing indicator
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'message bot-message typing-indicator';
+                typingDiv.innerHTML = '<div class="avatar">🤖</div><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+                document.getElementById('chat-box').appendChild(typingDiv);
+                
+                // Scroll to bottom
+                document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
+                
                 fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', },
@@ -182,20 +255,35 @@
                 })
                 .then(response => response.json())
                 .then(data => {
+                    // Remove typing indicator
+                    typingDiv.remove();
+                    
+                    // Add bot response
                     const botMessageDiv = document.createElement('div');
                     botMessageDiv.className = 'message bot-message';
-                    botMessageDiv.innerHTML = '<span class="msg-text">' + data.response + '</span>';
+                    botMessageDiv.innerHTML = '<div class="avatar">🤖</div><span class="msg-text">' + data.response + '</span>';
                     document.getElementById('chat-box').appendChild(botMessageDiv);
-                    animateLastMessage();
+                    
+                    // Scroll to bottom
+                    document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
                     document.getElementById('user-input').value = '';
                 })
-                .catch(error => console.error('Error:', error));
+                .catch(error => {
+                    console.error('Error:', error);
+                    typingDiv.remove();
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'message bot-message';
+                    errorDiv.innerHTML = '<div class="avatar">🤖</div><span class="msg-text">Sorry, there was an error processing your request. Please try again.</span>';
+                    document.getElementById('chat-box').appendChild(errorDiv);
+                });
             }
-        });
+        }
+        
+        document.getElementById('send-icon').addEventListener('click', sendMessage);
         document.getElementById('user-input').addEventListener('keypress', (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault();
-                document.getElementById('send-icon').click();
+                sendMessage();
             }
         });
 

@@ -6,9 +6,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from flask import session
 import json
-from pymongo import MongoClient
+# from pymongo import MongoClient  # Removed pymongo
 
 app = Flask(__name__)
+app.secret_key = 'your-secret-key-change-this-in-production'  # Required for sessions
 
 # Configure the API key
 genai.configure(api_key="AIzaSyDJXrCuBYP-KKKrEncheusiyz-GeNM0Do0")
@@ -81,33 +82,55 @@ def get_bmi_category(bmi):
     else:
         return "Obese"
 
-MONGO_URI = "mongodb+srv://sachinjalkote45:chatbot%40123@fitbot-chatbot.ij3mgel.mongodb.net/?retryWrites=true&w=majority&appName=fitbot-chatbot"
-client = MongoClient(MONGO_URI)
-db = client['fitbot']
-users_collection = db['users']
+# Temporary in-memory user store
+users = []
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = request.form['password']
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+        
+        # Basic validation
+        if not username or not email or not password:
+            return render_template('register.html', error="All fields are required.")
+        
+        if len(username) < 3:
+            return render_template('register.html', error="Username must be at least 3 characters long.")
+        
+        if len(password) < 6:
+            return render_template('register.html', error="Password must be at least 6 characters long.")
+        
         # Check if user exists
-        if users_collection.find_one({'$or': [{'username': username}, {'email': email}]}):
+        if any(u['username'] == username or u['email'] == email for u in users):
             return render_template('register.html', error="Username or email already exists.")
-        # Insert new user
-        users_collection.insert_one({'username': username, 'email': email, 'password': password})
+        
+        # Hash the password before storing
+        hashed_password = generate_password_hash(password)
+        
+        # Insert new user with hashed password
+        users.append({'username': username, 'email': email, 'password': hashed_password})
         return render_template('login.html', message="Registration successful! Please log in.")
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        user = users_collection.find_one({'username': username, 'password': password})
-        if user:
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        
+        # Basic validation
+        if not username or not password:
+            return render_template('login.html', error="Username and password are required.")
+        
+        # Find user by username
+        user = next((u for u in users if u['username'] == username), None)
+        
+        # Check if user exists and password is correct
+        if user and check_password_hash(user['password'], password):
             session['username'] = username
+            session['user_id'] = username  # Add user_id to session for chat functionality
             return render_template('chat.html')
         else:
             return render_template('login.html', error="Invalid username or password.")
@@ -115,29 +138,34 @@ def login():
 
 @app.route('/')
 def index():
-    return render_template('login.html') # Redirect root to login page
+    return render_template('login.html')  # Redirect root to login page
+
+@app.route('/chat_page')
+def chat_page():
+    if 'username' not in session:
+        return render_template('login.html', error="Please log in to access the chat.")
+    return render_template('chat.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return render_template('login.html', message="You have been logged out successfully.")
 
 @app.route('/chat', methods=['POST'])
 def chat():
     user_input = request.json.get('message')
-    user_id = session.get('user_id')
-    if not user_id:
+    username = session.get('username')
+    if not username:
         return jsonify({'response': 'Please log in.'})
-    response = chat_session.send_message(user_input)
-    formatted_response = format_response(response.text)
-    return jsonify({'response': formatted_response})
+    
+    try:
+        response = chat_session.send_message(user_input)
+        formatted_response = format_response(response.text)
+        return jsonify({'response': formatted_response})
+    except Exception as e:
+        return jsonify({'response': 'Sorry, there was an error processing your request. Please try again.'})
 
-@app.route('/chat_history')
-def chat_history():
-    user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({'history': []})
-    messages = ChatMessage.query.filter_by(user_id=user_id).order_by(ChatMessage.timestamp).all()
-    history = [
-        {'sender': m.sender, 'message': m.message, 'timestamp': m.timestamp.isoformat()}
-        for m in messages
-    ]
-    return jsonify({'history': history})
+
 
 if __name__ == '__main__':
     app.run(debug=True)

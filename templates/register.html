@@ -13,6 +13,11 @@
             <h2>Register</h2>
             <button id="theme-toggle" class="theme-toggle" title="Switch theme">🌙</button>
         </div>
+        {% if error %}
+            <div class="error-message">
+                {{ error }}
+            </div>
+        {% endif %}
         <form method="POST" action="/register">
             <div>
                 <label for="email">Email</label>
